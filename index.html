@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" type="text/css" href="jsxgraph.css" />
+  <title>Wave-equation</title>
+</head>
+<style>
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
+
+  body {
+    min-width: 100vw;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  header {
+    display: flex;
+    width: 100vw;
+    height: 5vh;
+    justify-content: space-evenly;
+  }
+
+  .header_item {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    flex-grow: 1;
+    border: 1px solid black;
+  }
+
+  a {
+    flex-grow: 1;
+    align-content: center;
+    text-align: center;
+    text-decoration: none;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    color: black;
+  }
+
+  #box,
+  #box2,
+  #box3 {
+    width: 600px;
+    height: 600px;
+    border: 1px solid black;
+    margin: 25px 0;
+  }
+</style>
+
+<body>
+  <div id="box" class="jxgbox"></div>
+</body>
+<script type="text/javascript" src="jsxgraphcore.js"></script>
+<script type="module" src="app.js"></script>
+
+<script>
+  // Подготовка данных о планетах
+  const planets = [
+    { name: 'Sun', mass: 1.989e30, x: 0, y: 0, vx: 0, vy: 0, speed: 0, color: 'yellow', radius: 348000 },
+    { name: 'Mercury', mass: 3.302e23, x: 57.9e9, y: 0, vx: 47.36e3, vy: 0, speed: 88, color: 'brown', radius: 2439 },
+    { name: 'Venus', mass: 4.869e24, x: 108.2e9, y: 0, vx: 35.02e3, vy: 0, speed: 225, color: 'orange', radius: 6052 },
+    { name: 'Earth', mass: 5.972e24, x: 149.6e9, y: 0, vx: 0, vy: 29.78e3, speed: 365, color: 'blue', radius: 6371 },
+    { name: 'Mars', mass: 6.39e23, x: 227.9e9, y: 0, vx: 0, vy: 24.07e3, speed: 687, color: 'red', radius: 3386 },
+    { name: 'Jupiter', mass: 1.898e27, x: 778.3e9, y: 0, vx: 13.06e4, vy: 0, speed: 4332, color: 'green', radius: 71492 },
+    { name: 'Saturn', mass: 5.683e26, x: 1426.7e9, y: 0, vx: 9.69e4, vy: 0, speed: 10759, color: 'purple', radius: 60268 },
+    { name: 'Uranus', mass: 8.681e25, x: 2870.9e9, y: 0, vx: 6.08e4, vy: 0, speed: 30687, color: 'teal', radius: 25559 },
+    { name: 'Neptune', mass: 1.024e26, x: 4497.1e9, y: 0, vx: 4.43e4, vy: 0, speed: 60190, color: 'navy', radius: 24764 },
+  ];
+
+  // Константы
+  const G = 6.674e-11; // Гравитационная постоянная
+  const dt = 360; // Шаг времени в секундах
+  const scale = 1e8; // Масштаб для визуализации
+
+  // Функция расчета ускорения
+  const calculateAcceleration = (planet1, planet2) => {
+    const dx = planet2.x - planet1.x;
+    const dy = planet2.y - planet1.y;
+    const r = Math.sqrt(dx * dx + dy * dy);
+
+    const F = G * planet1.mass * planet2.mass / (r * r);
+    const ax = F * dx / (r * planet1.mass);
+    const ay = F * dy / (r * planet1.mass);
+
+    return { ax, ay };
+  }
+
+  // Функция обновления положения планет
+  const updatePlanets = (planets) => {
+    for (let i = 0; i < planets.length; i++) {
+      let ax = 0, ay = 0;
+      for (let j = 0; j < planets.length; j++) {
+        if (i !== j) {
+          const acc = calculateAcceleration(planets[i], planets[j]);
+          ax += acc.ax;
+          ay += acc.ay;
+        }
+      }
+
+      planets[i].vx += ax * dt;
+      planets[i].vy += ay * dt;
+      planets[i].x += planets[i].vx * dt;
+      planets[i].y += planets[i].vy * dt;
+    }
+  }
+
+  // Инициализация JSXGraph
+  const box = document.getElementById('box');
+  const board = JXG.JSXGraph.initBoard(box, {
+    boundingbox: [-2500, 2500, 2500, -2500],
+    axis: true,
+    grid: false,
+    showCopyright: false
+  });
+  // Создание солнца в виде точки в центре коррдинат
+  const sun = board.create('point', [planets[0].x / scale, planets[0].y / scale], {
+    name: planets[0].name,
+    color: planets[0].color,
+    size: planets[0].radius * 2 / scale * 2000,
+    fixed: true,
+  });
+
+  for (let i = 1; i < planets.length; i += 1) {
+    // Создание окружности траектории движения планеты
+    const circle = board.create('circle', [sun, [planets[i].x / scale, planets[i].y / scale]], {
+      strokeColor: 'lightGrey',
+      strokeWidth: 2,
+    });
+    // Создание планеты, движущейся по траектории
+    const glider = board.create('glider', [planets[i].x / scale, planets[i].y / scale, circle], {
+      name: planets[i].name,
+      color: planets[i].color,
+      size: planets[i].radius * 2 / scale * 2000,
+    });
+    glider.startAnimation(1, planets[i].speed, 200);
+  }
+
+  board.update();
+
+
+
+</script>
+
+</html>
